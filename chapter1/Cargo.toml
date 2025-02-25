@@ -1,0 +1,9 @@
+[package]
+name = "chapter1"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit.workspace = true
+wgpu.workspace = true
+pollster.workspace = true

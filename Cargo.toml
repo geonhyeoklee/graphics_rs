@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = [
+    "chapter1"
+]
+
+[workspace.dependencies]
+winit = "0.30.9"
+wgpu = "24.0.1"
+pollster = "0.4.0"

@@ -1,0 +1,9 @@
+tab_spaces = 2
+fn_args_layout = "Compressed"
+imports_granularity = "Module"
+reorder_imports = true
+space_around_ranges = true
+normalize_comments = true
+remove_nested_parens = true
+chain_width = 60
+format_macro_matchers = true
