@@ -1,4 +1,5 @@
 mod app;
+mod image;
 mod state;
 
 use app::App;

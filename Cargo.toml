@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
-members = [
-    "chapter1"
-]
+members = ["chapter1", "chapter2"]
 
 [workspace.dependencies]
 winit = "0.30.9"
 wgpu = "24.0.1"
 pollster = "0.4.0"
+image = "0.25.5"
+# rayon = "1.10.0"

@@ -1,16 +1,19 @@
-use crate::state::State;
+mod rasterization;
+mod state;
+
+use state::State;
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, MouseButton, WindowEvent};
-use winit::event_loop::ActiveEventLoop;
+use winit::event::{ElementState, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
 #[derive(Default)]
-pub struct App {
+pub struct GraphicsApplication {
   window: Option<Window>,
   state: Option<State<'static>>,
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler for GraphicsApplication {
   fn resumed(&mut self, event_loop: &ActiveEventLoop) {
     self.window = Some(
       event_loop
@@ -21,24 +24,35 @@ impl ApplicationHandler for App {
     // 렌더링을 위한 상태 생성
     // 참고: 이것은 라이프타임 핵을 사용합니다. 하지만 실제 프로덕션 코드에서는
     // Rc/Arc를 사용하거나 코드 구조를 재구성해야 할 수 있습니다.
-    let window_ref = self.window.as_ref().unwrap();
-    let window_ptr: *const Window = window_ref;
-    let window_ref_unsafe: &'static Window = unsafe { &*window_ptr };
+    let window = self.window.as_ref().unwrap();
+    let window: *const Window = window;
+    let window: &'static Window = unsafe { &*window };
 
     // 비동기적으로 상태 초기화
     pollster::block_on(async {
-      self.state = Some(State::new(window_ref_unsafe).await);
+      self.state = Some(State::new(window).await);
     });
   }
 
   fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+    if let Some(state) = &mut self.state {
+      let window = self.window.as_ref().unwrap();
+
+      let response = state.egui_state.on_window_event(window, &event);
+      if response.consumed {
+        return;
+      }
+    }
+
     match event {
       WindowEvent::CloseRequested => {
         event_loop.exit();
       }
       WindowEvent::RedrawRequested => {
         if let Some(state) = &mut self.state {
-          match state.render() {
+          let window = self.window.as_ref().unwrap();
+
+          match state.render(window) {
             Ok(_) => {}
             Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
             Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
@@ -58,19 +72,26 @@ impl ApplicationHandler for App {
           println!("Key pressed: {:?}", event.physical_key);
         }
       }
-      WindowEvent::MouseInput { state, button, .. } => {
-        if state == ElementState::Released {
-          match button {
-            MouseButton::Left => println!("Left mouse button released"),
-            MouseButton::Right => println!("Right mouse button released"),
-            _ => {}
-          }
-        }
-      }
-      WindowEvent::CursorMoved { position, .. } => {
-        println!("Mouse moved to: ({}, {})", position.x, position.y);
-      }
+      // WindowEvent::MouseInput { state, button, .. } => {
+      //   if state == ElementState::Released {
+      //     match button {
+      //       MouseButton::Left => println!("Left mouse button released"),
+      //       MouseButton::Right => println!("Right mouse button released"),
+      //       _ => {}
+      //     }
+      //   }
+      // }
+      // WindowEvent::CursorMoved { position, .. } => {
+      //   println!("Mouse moved to: ({}, {})", position.x, position.y);
+      // }
       _ => (),
     }
   }
+}
+
+fn main() {
+  let event_loop = EventLoop::new().unwrap();
+  event_loop.set_control_flow(ControlFlow::Wait);
+  let mut app = GraphicsApplication::default();
+  let _ = event_loop.run_app(&mut app);
 }
